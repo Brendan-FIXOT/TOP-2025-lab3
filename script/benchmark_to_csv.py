@@ -6,11 +6,12 @@ import os
 import re
 
 if len(sys.argv) < 3:
-    print("Usage: python benchmark_to_combined_csv.py <chemin_exécutable> <label_version>")
+    print("Usage: python benchmark_to_combined_csv.py <chemin_exécutable> <label_version> <nb_repetitions>")
     sys.exit(1)
 
 executable = sys.argv[1]
 version_label = sys.argv[2]
+repeats = int(sys.argv[3])
 
 csv_path_name = "assets/datas/results_comparaison4-1024.csv"
 sizes = [4, 8, 16, 32, 64, 128, 256, 512, 1024]
@@ -20,12 +21,15 @@ time_col = f"{version_label}_time"
 
 results = {}
 for n in sizes:
-    result = subprocess.run([executable, str(n), str(n), str(n)], check=True, capture_output=True, text=True)
-    # Extraction du temps avec une regex
-    match = re.search(r"Time:\s*([0-9.]+)\s*s", result.stdout)
-    duration = float(match.group(1))
-    gflops = (2 * n**3) / duration / 1e9
-    results[n] = {gflops_col: round(gflops, 4), time_col: round(duration, 4)}
+    durations = []
+    for _ in range(repeats):
+        result = subprocess.run([executable, str(n), str(n), str(n)], check=True, capture_output=True, text=True)
+        # Extraction du temps avec une regex
+        match = re.search(r"Time:\s*([0-9.]+)\s*s", result.stdout)
+        durations.append(float(match.group(1)))
+    duration_mean = sum(durations) / repeats    
+    gflops = (2 * n**3) / duration_mean / 1e9
+    results[n] = {gflops_col: round(gflops, 4), time_col: round(duration_mean, 4)}
 
 data = {}
 if os.path.exists(csv_path_name):
