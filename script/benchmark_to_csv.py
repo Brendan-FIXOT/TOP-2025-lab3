@@ -15,8 +15,8 @@ version_label = sys.argv[2]
 repeats = int(sys.argv[3])
 layout_arg = sys.argv[4]
 
-csv_path_name = "assets/datas/results_comparaison128-2048.csv"
-sizes = [128, 192, 256, 384, 512, 768, 1024]
+csv_path_name = "assets/datas/results_comparaison_cache_blocking4-1024.csv"
+sizes = [4, 8, 16, 32, 64, 128, 256, 512, 1024]
 
 gflops_col = f"{version_label}_gflops"
 time_col = f"{version_label}_time"

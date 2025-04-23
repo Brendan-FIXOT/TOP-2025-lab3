@@ -47,6 +47,27 @@ auto matrix_product(double alpha, AMatrixType const& A, BMatrixType const& B, do
   );
 }
 
+template <class AMatrixType, class BMatrixType, class CMatrixType>
+auto matrix_product_blocked(double alpha, AMatrixType const& A, BMatrixType const& B, double beta, CMatrixType& C, int Bsize) -> void {
+  const int M = C.extent(0);
+  const int N = C.extent(1);
+  const int K = A.extent(1);
+
+  Kokkos::parallel_for("blocked_dgemm", Kokkos::RangePolicy<>(0, M), KOKKOS_LAMBDA(int ii) {
+    for (int jj_block = 0; jj_block < N; jj_block += Bsize) {
+      for (int kk_block = 0; kk_block < K; kk_block += Bsize) {
+        for (int jj = jj_block; jj < jj_block + Bsize && jj < N; ++jj) {
+          double acc = 0.0;
+          for (int kk = kk_block; kk < kk_block + Bsize && kk < K; ++kk) {
+            acc += alpha * A(ii, kk) * B(kk, jj);
+          }
+          C(ii, jj) *= beta + acc;
+        }
+      }
+    }
+  });
+}
+
 auto main(int argc, char* argv[]) -> int {
   if (argc < 4) {
     fmt::print("Usage: {} <M> <N> <K>\n", argv[0]);
@@ -79,6 +100,7 @@ auto main(int argc, char* argv[]) -> int {
 
       Kokkos::Timer timer; // Pour mesurer le temps de mnaière bien plus précise
       matrix_product(alpha, A, B, beta, C);
+      //matrix_product_blocked(alpha, A, B, beta, C, 64); // bloc de taille 64
       Kokkos::fence();
       double elapsed = timer.seconds();
       
@@ -100,6 +122,7 @@ auto main(int argc, char* argv[]) -> int {
 
       Kokkos::Timer timer; // Pour mesurer le temps de mnaière bien plus précise
       matrix_product(alpha, A, B, beta, C);
+      //matrix_product_blocked(alpha, A, B, beta, C, 64); // bloc de taille 64
       Kokkos::fence();
       double elapsed = timer.seconds();
       
