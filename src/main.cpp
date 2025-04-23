@@ -3,6 +3,8 @@
 
 #include <Kokkos_Core.hpp>
 #include <fmt/core.h>
+#include <Kokkos_Timer.hpp>
+#include <string>
 
 using Matrix = Kokkos::View<double**, Kokkos::LayoutRight>;
 
@@ -53,25 +55,60 @@ auto main(int argc, char* argv[]) -> int {
   int m = std::atoi(argv[1]);
   int n = std::atoi(argv[2]);
   int k = std::atoi(argv[3]);
+  std::string layout_arg = argv[4];
 
   // Known seed for deterministic RNG
   srand48(42);
 
   Kokkos::initialize(argc, argv);
   {
-    auto A = Matrix("A", m, k);
-    auto B = Matrix("B", k, n);
-    auto C = Matrix("C", m, n);
+    if (layout_arg == "right") {
+      using Matrix = Kokkos::View<double**, Kokkos::LayoutRight>;
 
-    double alpha = drand48();
-    matrix_init(A);
-    matrix_init(B);
-    double beta = drand48();
-    matrix_init(C);
+      auto A = Matrix("A", m, k);
+      auto B = Matrix("B", k, n);
+      auto C = Matrix("C", m, n);
 
-    Kokkos::fence();
-    matrix_product(alpha, A, B, beta, C);
-    Kokkos::fence();
+      double alpha = drand48();
+      matrix_init(A);
+      matrix_init(B);
+      double beta = drand48();
+      matrix_init(C);
+
+      Kokkos::fence();
+
+      Kokkos::Timer timer; // Pour mesurer le temps de mnaière bien plus précise
+      matrix_product(alpha, A, B, beta, C);
+      Kokkos::fence();
+      double elapsed = timer.seconds();
+      
+      fmt::print("Time: {:.6f} s\n", elapsed);
+    } else if (layout_arg == "left") {
+      using Matrix = Kokkos::View<double**, Kokkos::LayoutLeft>;
+
+      auto A = Matrix("A", m, k);
+      auto B = Matrix("B", k, n);
+      auto C = Matrix("C", m, n);
+
+      double alpha = drand48();
+      matrix_init(A);
+      matrix_init(B);
+      double beta = drand48();
+      matrix_init(C);
+
+      Kokkos::fence();
+
+      Kokkos::Timer timer; // Pour mesurer le temps de mnaière bien plus précise
+      matrix_product(alpha, A, B, beta, C);
+      Kokkos::fence();
+      double elapsed = timer.seconds();
+      
+      fmt::print("Time: {:.6f} s\n", elapsed);
+    } else {
+      fmt::print("Layout non renseigné : Utilise 'left' ou 'right'.\n", layout_arg);
+      Kokkos::finalize();
+      return -1;
+    }
   }
   Kokkos::finalize();
   return 0;
